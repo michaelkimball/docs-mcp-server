@@ -5,6 +5,7 @@ import { validateUrl } from "../utils/url";
 import { AndroidDocsScraperStrategy } from "./strategies/AndroidDocsScraperStrategy";
 import { GitHubScraperStrategy } from "./strategies/GitHubScraperStrategy";
 import { LocalFileStrategy } from "./strategies/LocalFileStrategy";
+import { MicrosoftLearnScraperStrategy } from "./strategies/MicrosoftLearnScraperStrategy";
 import { NpmScraperStrategy } from "./strategies/NpmScraperStrategy";
 import { PyPiScraperStrategy } from "./strategies/PyPiScraperStrategy";
 import { WebScraperStrategy } from "./strategies/WebScraperStrategy";
@@ -54,6 +55,11 @@ export class ScraperRegistry {
       return new AndroidDocsScraperStrategy(this.config);
     }
 
+    if (isMicrosoftLearnUrl(url)) {
+      logger.debug(`Using strategy "MicrosoftLearnScraperStrategy" for URL: ${url}`);
+      return new MicrosoftLearnScraperStrategy(this.config);
+    }
+
     if (isGitHubUrl(url)) {
       logger.debug(`Using strategy "GitHubScraperStrategy" for URL: ${url}`);
       return new GitHubScraperStrategy(this.config);
@@ -94,6 +100,15 @@ function isAndroidDocsUrl(url: string): boolean {
   try {
     const { hostname } = new URL(url);
     return ["developer.android.com"].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isMicrosoftLearnUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return ["learn.microsoft.com", "docs.microsoft.com"].includes(hostname);
   } catch {
     return false;
   }

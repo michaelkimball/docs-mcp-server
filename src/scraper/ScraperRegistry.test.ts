@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { loadConfig } from "../utils/config";
 import { ScraperError } from "../utils/errors";
 import { ScraperRegistry } from "./ScraperRegistry";
+import { AndroidDocsScraperStrategy } from "./strategies/AndroidDocsScraperStrategy";
 import { GitHubScraperStrategy } from "./strategies/GitHubScraperStrategy";
 import { LocalFileStrategy } from "./strategies/LocalFileStrategy";
+import { MicrosoftLearnScraperStrategy } from "./strategies/MicrosoftLearnScraperStrategy";
 import { NpmScraperStrategy } from "./strategies/NpmScraperStrategy";
 import { PyPiScraperStrategy } from "./strategies/PyPiScraperStrategy";
 import { WebScraperStrategy } from "./strategies/WebScraperStrategy";
@@ -41,6 +43,26 @@ describe("ScraperRegistry", () => {
     const registry = new ScraperRegistry(appConfig);
     const strategy = registry.getStrategy("https://pypi.org/project/test");
     expect(strategy).toBeInstanceOf(PyPiScraperStrategy);
+  });
+
+  it("should return AndroidDocsScraperStrategy for Android documentation URLs", () => {
+    const registry = new ScraperRegistry(appConfig);
+    const strategy = registry.getStrategy(
+      "https://developer.android.com/reference/android/view/View",
+    );
+    expect(strategy).toBeInstanceOf(AndroidDocsScraperStrategy);
+  });
+
+  it("should return MicrosoftLearnScraperStrategy for Microsoft Learn URLs", () => {
+    const registry = new ScraperRegistry(appConfig);
+    const learnStrategy = registry.getStrategy(
+      "https://learn.microsoft.com/en-us/javascript/api/microsoft-cognitiveservices-speech-sdk/synthesisresult?view=azure-node-latest",
+    );
+    const docsStrategy = registry.getStrategy(
+      "https://docs.microsoft.com/en-us/dotnet/api/system.string",
+    );
+    expect(learnStrategy).toBeInstanceOf(MicrosoftLearnScraperStrategy);
+    expect(docsStrategy).toBeInstanceOf(MicrosoftLearnScraperStrategy);
   });
 
   it("should return WebScraperStrategy for generic HTTP URLs", () => {
