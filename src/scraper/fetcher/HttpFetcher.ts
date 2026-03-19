@@ -37,6 +37,8 @@ export class HttpFetcher implements ContentFetcher {
     "EMFILE", // Too many open files
     "ENFILE", // File table overflow
     "EPERM", // Operation not permitted
+    "ERR_FR_TOO_MANY_REDIRECTS", // Redirect loop - will never succeed
+    "ERR_TOO_MANY_REDIRECTS", // Alternative redirect loop error
   ];
 
   private fingerprintGenerator: FingerprintGenerator;
@@ -253,6 +255,11 @@ export class HttpFetcher implements ContentFetcher {
           );
           await this.delay(delay);
           continue;
+        }
+
+        // Redirect loops should trigger browser fallback
+        if (code === "ERR_FR_TOO_MANY_REDIRECTS" || code === "ERR_TOO_MANY_REDIRECTS") {
+          throw new ChallengeError(source, status ?? 0, "redirect-loop");
         }
 
         // Not a 5xx error or max retries reached

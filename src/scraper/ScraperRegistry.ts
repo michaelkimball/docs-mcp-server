@@ -2,6 +2,7 @@ import type { AppConfig } from "../utils/config";
 import { ScraperError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { validateUrl } from "../utils/url";
+import { AndroidDocsScraperStrategy } from "./strategies/AndroidDocsScraperStrategy";
 import { GitHubScraperStrategy } from "./strategies/GitHubScraperStrategy";
 import { LocalFileStrategy } from "./strategies/LocalFileStrategy";
 import { NpmScraperStrategy } from "./strategies/NpmScraperStrategy";
@@ -48,6 +49,11 @@ export class ScraperRegistry {
       return new PyPiScraperStrategy(this.config);
     }
 
+    if (isAndroidDocsUrl(url)) {
+      logger.debug(`Using strategy "AndroidDocsScraperStrategy" for URL: ${url}`);
+      return new AndroidDocsScraperStrategy(this.config);
+    }
+
     if (isGitHubUrl(url)) {
       logger.debug(`Using strategy "GitHubScraperStrategy" for URL: ${url}`);
       return new GitHubScraperStrategy(this.config);
@@ -79,6 +85,15 @@ function isPyPiUrl(url: string): boolean {
   try {
     const { hostname } = new URL(url);
     return ["pypi.org", "www.pypi.org"].includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isAndroidDocsUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return ["developer.android.com"].includes(hostname);
   } catch {
     return false;
   }

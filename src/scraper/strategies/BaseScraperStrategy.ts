@@ -265,7 +265,8 @@ export abstract class BaseScraperStrategy implements ScraperStrategy {
       const normalizedUrl = normalizeUrl(item.url, this.options.urlNormalizerOptions);
       if (!this.visited.has(normalizedUrl)) {
         this.visited.add(normalizedUrl);
-        uniqueLinks.push(item);
+        // Push item with normalized URL to avoid fetching non-normalized variants
+        uniqueLinks.push({ ...item, url: normalizedUrl });
 
         // Always increment the unlimited counter
         this.totalDiscovered++;

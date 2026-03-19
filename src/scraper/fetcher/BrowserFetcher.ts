@@ -17,7 +17,6 @@ import {
  */
 export class BrowserFetcher implements ContentFetcher {
   private browser: Browser | null = null;
-  private page: Page | null = null;
   private fingerprintGenerator: FingerprintGenerator;
   private readonly defaultTimeoutMs: number;
 
@@ -31,25 +30,34 @@ export class BrowserFetcher implements ContentFetcher {
   }
 
   async fetch(source: string, options?: FetchOptions): Promise<RawContent> {
+    let page: Page | null = null;
     try {
       await this.ensureBrowserReady();
 
-      if (!this.page) {
-        throw new ScraperError("Failed to create browser page", false);
+      if (!this.browser) {
+        throw new ScraperError("Failed to launch browser", false);
       }
 
-      // Set custom headers if provided
-      if (options?.headers) {
-        await this.page.setExtraHTTPHeaders(options.headers);
-      }
+      // Create a fresh page for each fetch to avoid state pollution
+      page = await this.browser.newPage();
+
+      // Generate and set realistic browser headers
+      const dynamicHeaders = this.fingerprintGenerator.generateHeaders();
+      await page.setExtraHTTPHeaders({
+        ...dynamicHeaders,
+        ...options?.headers,
+      });
+
+      // Set viewport
+      await page.setViewportSize({ width: 1920, height: 1080 });
 
       // Set timeout
       const timeout = options?.timeout || this.defaultTimeoutMs;
 
       // Navigate to the page and wait for it to load
       logger.debug(`Navigating to ${source} with browser...`);
-      const response = await this.page.goto(source, {
-        waitUntil: "networkidle",
+      const response = await page.goto(source, {
+        waitUntil: "load",
         timeout,
       });
 
@@ -70,10 +78,10 @@ export class BrowserFetcher implements ContentFetcher {
       }
 
       // Get the final URL after any redirects
-      const finalUrl = this.page.url();
+      const finalUrl = page.url();
 
       // Get the page content
-      const content = await this.page.content();
+      const content = await page.content();
       const contentBuffer = Buffer.from(content, "utf-8");
 
       // Determine content type
@@ -103,6 +111,15 @@ export class BrowserFetcher implements ContentFetcher {
         false,
         error instanceof Error ? error : undefined,
       );
+    } finally {
+      // Always close the page to prevent resource leaks
+      if (page) {
+        try {
+          await page.close();
+        } catch (error) {
+          logger.warn(`⚠️  Error closing browser page: ${error}`);
+        }
+      }
     }
   }
 
@@ -119,17 +136,6 @@ export class BrowserFetcher implements ContentFetcher {
       logger.debug("Launching browser...");
       this.browser = await BrowserFetcher.launchBrowser();
     }
-
-    if (!this.page) {
-      this.page = await this.browser.newPage();
-
-      // Generate and set realistic browser headers
-      const dynamicHeaders = this.fingerprintGenerator.generateHeaders();
-      await this.page.setExtraHTTPHeaders(dynamicHeaders);
-
-      // Set viewport
-      await this.page.setViewportSize({ width: 1920, height: 1080 });
-    }
   }
 
   /**
@@ -137,18 +143,6 @@ export class BrowserFetcher implements ContentFetcher {
    * Always attempts cleanup even if browser is disconnected to reap zombie processes.
    */
   async close(): Promise<void> {
-    // Close page first
-    if (this.page) {
-      try {
-        await this.page.close();
-      } catch (error) {
-        logger.warn(`⚠️  Error closing browser page: ${error}`);
-      } finally {
-        this.page = null;
-      }
-    }
-
-    // Then close browser
     if (this.browser) {
       try {
         await this.browser.close();

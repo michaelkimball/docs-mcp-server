@@ -82,7 +82,9 @@ export const DEFAULT_CONFIG = {
     batchChars: 50_000,
     requestTimeoutMs: 30_000,
     initTimeoutMs: 30_000,
-    vectorDimension: 1536,
+    vectorDimension: 768,
+    maxRetries: 3,
+    retryDelayMs: 2000,
   },
   db: {
     migrationMaxRetries: 5,
@@ -227,6 +229,11 @@ export const AppConfigSchema = z.object({
         .number()
         .int()
         .default(DEFAULT_CONFIG.embeddings.vectorDimension),
+      maxRetries: z.coerce.number().int().default(DEFAULT_CONFIG.embeddings.maxRetries),
+      retryDelayMs: z.coerce
+        .number()
+        .int()
+        .default(DEFAULT_CONFIG.embeddings.retryDelayMs),
     })
     .default(DEFAULT_CONFIG.embeddings),
   db: z

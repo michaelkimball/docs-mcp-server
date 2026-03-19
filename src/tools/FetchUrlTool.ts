@@ -35,6 +35,12 @@ export interface FetchUrlToolOptions {
    * Keys are header names, values are header values.
    */
   headers?: Record<string, string>;
+
+  /**
+   * CSS selectors for elements to exclude during HTML processing.
+   * These are applied in addition to the default exclusions (nav, footer, header, etc.).
+   */
+  excludeSelectors?: string[];
 }
 
 /**
@@ -69,7 +75,7 @@ export class FetchUrlTool {
    * @throws {ToolError} If fetching or processing fails
    */
   async execute(options: FetchUrlToolOptions): Promise<string> {
-    const { url, scrapeMode = ScrapeMode.Auto, headers } = options;
+    const { url, scrapeMode = ScrapeMode.Auto, headers, excludeSelectors } = options;
 
     if (!this.fetcher.canFetch(url)) {
       throw new ValidationError(
@@ -106,7 +112,7 @@ export class FetchUrlTool {
               maxConcurrency: 1,
               scope: "subpages",
               followRedirects: options.followRedirects ?? true,
-              excludeSelectors: undefined,
+              excludeSelectors, // propagate custom excludeSelectors
               ignoreErrors: false,
               scrapeMode,
               headers, // propagate custom headers

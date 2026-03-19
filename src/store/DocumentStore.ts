@@ -67,6 +67,8 @@ export class DocumentStore {
   private readonly embeddingBatchSize: number;
   private readonly embeddingBatchChars: number;
   private readonly embeddingInitTimeoutMs: number;
+  private readonly embeddingMaxRetries: number;
+  private readonly embeddingRetryDelayMs: number;
   private modelDimension!: number;
   private readonly embeddingConfig?: EmbeddingModelConfig | null;
   private isVectorSearchEnabled: boolean = false;
@@ -207,6 +209,8 @@ export class DocumentStore {
     this.embeddingBatchSize = this.config.embeddings.batchSize;
     this.embeddingBatchChars = this.config.embeddings.batchChars;
     this.embeddingInitTimeoutMs = this.config.embeddings.initTimeoutMs;
+    this.embeddingMaxRetries = this.config.embeddings.maxRetries;
+    this.embeddingRetryDelayMs = this.config.embeddings.retryDelayMs;
 
     // Only establish database connection in constructor
     this.db = new Database(dbPath);
@@ -1071,18 +1075,41 @@ export class DocumentStore {
   }
 
   /**
-   * Creates embeddings for an array of texts with automatic retry logic for size-related errors.
+   * Helper method to check if an error is retryable (timeout or network error)
+   */
+  private isRetryableError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+    const message = error.message.toLowerCase();
+    return (
+      message.includes("timeout") ||
+      message.includes("timed out") ||
+      message.includes("econnrefused") ||
+      message.includes("enotfound") ||
+      message.includes("etimedout") ||
+      message.includes("econnreset") ||
+      message.includes("network") ||
+      message.includes("fetch failed") ||
+      message.includes("socket hang up")
+    );
+  }
+
+  /**
+   * Creates embeddings for an array of texts with automatic retry logic for timeout/network errors and size-related errors.
+   * Implements exponential backoff for retries and recursively splits batches when needed.
+   * If a batch fails due to timeout/network: retries with exponential backoff
    * If a batch fails due to size limits:
    * - Batches with multiple texts are split in half and retried recursively
    * - Single texts that are too large are truncated and retried once
    *
    * @param texts Array of texts to embed
    * @param isRetry Internal flag to prevent duplicate warning logs
+   * @param attemptNumber Current retry attempt number (for exponential backoff)
    * @returns Array of embedding vectors
    */
   private async embedDocumentsWithRetry(
     texts: string[],
     isRetry = false,
+    attemptNumber = 0,
   ): Promise<number[][]> {
     if (texts.length === 0) {
       return [];
@@ -1092,6 +1119,16 @@ export class DocumentStore {
       // Try to embed the batch normally
       return await this.embeddings.embedDocuments(texts);
     } catch (error) {
+      // Check if this is a retryable timeout/network error
+      if (this.isRetryableError(error) && attemptNumber < this.embeddingMaxRetries) {
+        const delayMs = this.embeddingRetryDelayMs * 2 ** attemptNumber;
+        logger.warn(
+          `⚠️  Embedding request failed (attempt ${attemptNumber + 1}/${this.embeddingMaxRetries + 1}): ${error instanceof Error ? error.message : String(error)}. Retrying in ${delayMs}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return this.embedDocumentsWithRetry(texts, isRetry, attemptNumber + 1);
+      }
+
       // Check if this is a size-related error
       if (this.isInputSizeError(error)) {
         if (texts.length > 1) {
@@ -1108,8 +1145,8 @@ export class DocumentStore {
           }
 
           const [firstEmbeddings, secondEmbeddings] = await Promise.all([
-            this.embedDocumentsWithRetry(firstHalf, true),
-            this.embedDocumentsWithRetry(secondHalf, true),
+            this.embedDocumentsWithRetry(firstHalf, true, 0),
+            this.embedDocumentsWithRetry(secondHalf, true, 0),
           ]);
 
           return [...firstEmbeddings, ...secondEmbeddings];
@@ -1129,7 +1166,7 @@ export class DocumentStore {
           try {
             // Recursively retry with first half only (mark as retry to prevent duplicate logs)
             // This preserves the beginning of the text which typically contains the most important context
-            const embedding = await this.embedDocumentsWithRetry([firstHalf], true);
+            const embedding = await this.embedDocumentsWithRetry([firstHalf], true, 0);
             return embedding;
           } catch (retryError) {
             // If even split text fails, log error and throw
@@ -1141,7 +1178,7 @@ export class DocumentStore {
         }
       }
 
-      // Not a size error, re-throw
+      // Not a retryable or size error, re-throw
       throw error;
     }
   }
