@@ -77,6 +77,14 @@ export class DocumentManagementClient implements IDocumentManagement {
     return this.client.search.query({ library, version: version ?? null, query, limit });
   }
 
+  async getPageChunks(
+    library: string,
+    version: string | null | undefined,
+    url: string,
+  ): Promise<import("./types").DbPageChunk[]> {
+    return this.client.getPageChunks.query({ library, version: version ?? null, url });
+  }
+
   async removeVersion(library: string, version?: string | null): Promise<void> {
     await this.client.removeVersion.mutate({ library, version });
   }

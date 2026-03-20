@@ -268,7 +268,7 @@ console.log('Hello');
     ]);
   });
 
-  it("should correctly split long tables while preserving headers", async () => {
+  it("should keep long tables together in a single chunk", async () => {
     const splitter = new SemanticMarkdownSplitter(10, 100);
 
     // Create a table with many rows that will exceed chunkSize
@@ -285,23 +285,18 @@ ${tableRows}
 
     const result = await splitter.splitText(markdown);
 
-    // Verify that we got multiple chunks
-    expect(result.length).toBeGreaterThan(1);
+    // Tables should stay together as a single chunk, even if they exceed maxChunkSize
+    expect(result.length).toBe(1);
 
-    // Verify each chunk
-    for (const chunk of result) {
-      expect(chunk.types).toEqual(["table"]);
-      // Each chunk should start with the header
-      expect(chunk.content).toMatch(/^\| ID \| Description \| Value \|/);
-      // Each chunk should have the header separator
-      expect(chunk.content).toMatch(/\|---|---|---\|/);
-      // Each chunk should have at least one data row
-      expect(chunk.content.split("\n").length).toBeGreaterThan(2);
-      // Each chunk should be valid markdown table format
-      expect(chunk.content).toMatch(/^\|.*\|$/gm);
-      // Each chunk should be within size limit
-      expect(chunk.content.length).toBeLessThanOrEqual(100);
-    }
+    const chunk = result[0];
+    expect(chunk.types).toEqual(["table"]);
+    // Chunk should contain the full table
+    expect(chunk.content).toMatch(/^\| ID \| Description \| Value \|/);
+    expect(chunk.content).toMatch(/\|---|---|---\|/);
+    expect(chunk.content.split("\n").length).toBeGreaterThan(20); // All rows
+    expect(chunk.content).toMatch(/^\|.*\|$/gm);
+    // Table will exceed the chunk size limit, but that's okay to preserve structure
+    expect(chunk.content.length).toBeGreaterThan(100);
   });
 
   it("should correctly split long code blocks while preserving language", async () => {
@@ -339,21 +334,24 @@ ${codeLines}
     }
   });
 
-  it("should handle tables that cannot be split semantically by using character-based splitting", async () => {
+  it("should keep tables together even when they exceed max chunk size", async () => {
     const splitter = new SemanticMarkdownSplitter(20, 20);
     const markdown = `
 | Header1 | Header2 |
 |---------|---------|
 | Cell1   | Cell2   |`;
 
-    // Should not throw an error anymore
+    // Should not throw an error
     const result = await splitter.splitText(markdown);
 
-    // Verify we got chunks back
-    expect(result.length).toBeGreaterThan(0);
+    // Should get a single chunk with the full table
+    expect(result.length).toBe(1);
+    expect(result[0].types).toEqual(["table"]);
+    expect(result[0].content).toContain("Header1");
+    expect(result[0].content).toContain("Cell1");
 
-    // Each chunk should be under the max size
-    expect(result.every((chunk) => chunk.content.length <= 20)).toBe(true);
+    // Table is kept together even though it exceeds maxChunkSize
+    expect(result[0].content.length).toBeGreaterThan(20);
   });
 
   it("should handle code blocks that cannot be split semantically by using character-based splitting", async () => {

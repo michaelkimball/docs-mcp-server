@@ -130,6 +130,38 @@ describe("HtmlToMarkdownMiddleware", () => {
     // No close needed
   });
 
+  it("should handle tables without headers by creating empty header row", async () => {
+    const middleware = new HtmlToMarkdownMiddleware();
+    const html = `
+      <html><body>
+        <table>
+          <tbody>
+            <tr><td>errorDetails</td><td>In case of an unsuccessful synthesis, provides details of the occurred error.</td></tr>
+            <tr><td>properties</td><td>The set of properties exposed in the result.</td></tr>
+            <tr><td>reason</td><td>Specifies status of the result.</td></tr>
+          </tbody>
+        </table>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    // Should create table with empty headers and separator row
+    const lines = context.content.split("\n");
+    expect(lines[0]).toBe("|  |  |"); // Empty headers
+    expect(lines[1]).toBe("| --- | --- |"); // Separator
+    expect(lines[2]).toBe(
+      "| errorDetails | In case of an unsuccessful synthesis, provides details of the occurred error. |",
+    );
+    expect(lines[3]).toBe(
+      "| properties | The set of properties exposed in the result. |",
+    );
+    expect(lines[4]).toBe("| reason | Specifies status of the result. |");
+    expect(context.errors).toHaveLength(0);
+  });
+
   it("should return empty string and markdown type if conversion results in empty markdown", async () => {
     const middleware = new HtmlToMarkdownMiddleware();
     // HTML that results in empty markdown (only comments)

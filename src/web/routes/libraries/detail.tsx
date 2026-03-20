@@ -118,7 +118,7 @@ export function registerLibraryDetailRoutes(
 
         // Return only the results list or error message
         reply.type("text/html; charset=utf-8");
-        return <SearchResultList results={searchResult.results} />;
+        return <SearchResultList results={searchResult.results} library={libraryName} version={version} />;
       } catch (error) {
         server.log.error(error, `Failed to search library ${libraryName}`);
         // Return error message using Alert component

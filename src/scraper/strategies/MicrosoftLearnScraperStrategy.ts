@@ -21,19 +21,32 @@ export class MicrosoftLearnScraperStrategy implements ScraperStrategy {
 
     // Page actions and menus (more specific than just button)
     "#article-header-page-actions", // Page action buttons container
-    "#article-header-page-actions-overflow", // Page actions overflow menu
+    "#article-header-page-actions-overflow", // Page actions overflow menu (details element)
+    "details.popover", // Popover details elements
     ".popover", // All popover menus
+    ".popover-content", // Popover content divs
     "[data-contents-button]", // Table of contents button
     "[data-ask-learn-modal-entry]", // Ask Learn modal entry
     "[data-ask-learn-flyout-entry]", // Ask Learn flyout entry
     "[data-focus-mode]", // Focus mode button
     "[data-contenteditbtn]", // Edit buttons
+    '[data-bi-name="language-toggle"]', // Language toggle ("Read in English")
+    "[data-read-in-link]", // Read in language link
+    '[href*="github.com/MicrosoftDocs"]', // Edit on GitHub links
+    '[data-bi-name="edit"]', // Edit links (additional selector)
 
-    // Social sharing (specific share buttons)
+    // Social sharing (specific share buttons and container)
     ".share-facebook",
     ".share-twitter",
     ".share-linkedin",
     ".share-email",
+    '[href*="facebook.com/sharer"]', // Facebook share links
+    '[href*="twitter.com/intent/tweet"]', // Twitter share links
+    '[href*="linkedin.com/feed"]', // LinkedIn share links
+    '[href*="WT.mc_id=facebook"]', // Microsoft tracking links for Facebook
+    '[href*="WT.mc_id=twitter"]', // Microsoft tracking links for Twitter
+    '[href*="WT.mc_id=linkedin"]', // Microsoft tracking links for LinkedIn
+    '[href*="WT.mc_id=email"]', // Microsoft tracking links for Email
 
     // Action panel
     "#action-panel", // Action panel region
@@ -49,6 +62,9 @@ export class MicrosoftLearnScraperStrategy implements ScraperStrategy {
     // Notifications
     "#ms--inline-notifications", // Inline notifications
     "[unauthorized-private-section]", // Unauthorized private content notice
+    ".notification", // Notification banners
+    ".notification-info", // Info notifications (often contain auth notices)
+    '[data-bi-name="permission-content-unauthorized-private"]', // Permission content notices
 
     // Accessibility live regions (screen reader announcements, not content)
     "#assertive-live-region",

@@ -30,6 +30,11 @@ export interface IDocumentManagement {
     query: string,
     limit?: number,
   ): Promise<StoreSearchResult[]>;
+  getPageChunks(
+    library: string,
+    version: string | null | undefined,
+    url: string,
+  ): Promise<import("../types").DbPageChunk[]>;
   removeAllDocuments(library: string, version?: string | null): Promise<void>;
   removeVersion(library: string, version?: string | null): Promise<void>;
 

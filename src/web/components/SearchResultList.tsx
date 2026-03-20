@@ -6,6 +6,8 @@ import SearchResultItem from "./SearchResultItem";
  */
 interface SearchResultListProps {
   results: StoreSearchResult[];
+  library?: string;
+  version?: string;
 }
 
 /**
@@ -13,7 +15,7 @@ interface SearchResultListProps {
  * Displays a message if no results are found.
  * @param props - Component props including the array of search results.
  */
-const SearchResultList = ({ results }: SearchResultListProps) => {
+const SearchResultList = ({ results, library, version }: SearchResultListProps) => {
   if (results.length === 0) {
     return (
       <p class="text-gray-500 dark:text-gray-400 italic">No results found.</p>
@@ -22,7 +24,7 @@ const SearchResultList = ({ results }: SearchResultListProps) => {
   return (
     <div class="space-y-2">
       {results.map((result) => (
-        <SearchResultItem result={result} />
+        <SearchResultItem result={result} library={library} version={version} />
       ))}
     </div>
   );

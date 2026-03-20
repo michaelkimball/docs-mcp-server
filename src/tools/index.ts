@@ -4,6 +4,7 @@ export * from "./errors";
 export * from "./FetchUrlTool";
 export * from "./FindVersionTool";
 export * from "./GetJobInfoTool";
+export * from "./GetPageTool";
 export * from "./ListJobsTool";
 export * from "./ListLibrariesTool";
 export * from "./RefreshVersionTool";

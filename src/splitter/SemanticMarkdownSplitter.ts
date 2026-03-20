@@ -312,7 +312,9 @@ export class SemanticMarkdownSplitter implements DocumentSplitter {
               break;
             }
             case "table": {
-              splitContent = await this.tableSplitter.split(content.text);
+              // Keep tables together in a single chunk to preserve structure
+              // Don't split tables even if they exceed maxChunkSize
+              splitContent = [content.text];
               break;
             }
             case "list": {

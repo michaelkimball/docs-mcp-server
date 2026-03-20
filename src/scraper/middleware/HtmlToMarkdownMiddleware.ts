@@ -29,6 +29,53 @@ export class HtmlToMarkdownMiddleware implements ContentProcessorMiddleware {
   }
 
   private addCustomRules(): void {
+    // Add custom table rule to ensure proper markdown table formatting
+    this.turndownService.addRule("table", {
+      filter: ["table"],
+      replacement: (_content: string, node: Node) => {
+        const table = node as HTMLTableElement;
+
+        // Try to get headers from <th> elements
+        let headers = Array.from(table.querySelectorAll("th")).map(
+          (th) => th.textContent?.trim() || "",
+        );
+
+        // Get all data rows (excluding header rows)
+        const rows = Array.from(table.querySelectorAll("tr")).filter(
+          (tr) => !tr.querySelector("th"),
+        );
+
+        if (rows.length === 0) return "";
+
+        let markdown = "\n";
+
+        // If no explicit headers, infer column count from first row
+        if (headers.length === 0) {
+          const firstRowCells = Array.from(rows[0].querySelectorAll("td"));
+          const columnCount = firstRowCells.length;
+
+          // Create empty headers for each column
+          headers = Array(columnCount).fill("");
+        }
+
+        // Add header row and separator
+        markdown += `| ${headers.join(" | ")} |\n`;
+        markdown += `|${headers.map(() => " --- ").join("|")}|\n`;
+
+        // Add data rows
+        for (const row of rows) {
+          const cells = Array.from(row.querySelectorAll("td")).map(
+            (td) => td.textContent?.trim() || "",
+          );
+          if (cells.length > 0) {
+            markdown += `| ${cells.join(" | ")} |\n`;
+          }
+        }
+
+        return markdown;
+      },
+    });
+
     // Preserve code blocks and syntax (replicated from HtmlProcessor)
     this.turndownService.addRule("pre", {
       filter: ["pre"],

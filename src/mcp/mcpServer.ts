@@ -232,6 +232,72 @@ ${r.content}\n`,
     },
   );
 
+  // Get page tool
+  server.tool(
+    "get_page",
+    "Retrieve all chunks from a specific page URL. Use this to view complete page content or explore its structure.",
+    {
+      library: z.string().trim().describe("Library name."),
+      version: z
+        .string()
+        .trim()
+        .optional()
+        .describe("Library version (exact or X-Range, optional)."),
+      url: z.string().url().describe("Page URL to retrieve."),
+    },
+    {
+      title: "Get Page Content",
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    async ({ library, version, url }) => {
+      // Track MCP tool usage
+      telemetry.track(TelemetryEvent.TOOL_USED, {
+        tool: "get_page",
+        context: "mcp_server",
+        library,
+        version,
+        url: new URL(url).hostname, // Privacy-safe URL tracking
+      });
+
+      try {
+        const result = await tools.getPage.execute({
+          library,
+          version,
+          url,
+        });
+
+        if (result.totalChunks === 0) {
+          return createResponse(
+            `No content found for URL: ${url} in ${library}${version ? `@${version}` : ""}`,
+          );
+        }
+
+        // Format the response with chunk information
+        const header =
+          `📄 Page: ${result.title || url}\n` +
+          `Library: ${library}${version ? `@${version}` : ""}\n` +
+          `Total chunks: ${result.totalChunks}\n` +
+          (result.mimeType ? `Content type: ${result.mimeType}\n` : "") +
+          `\n${"=".repeat(60)}\n\n`;
+
+        const chunks = result.chunks
+          .map((chunk, i) => {
+            const chunkHeader = `Chunk ${i + 1}/${result.totalChunks} (order: ${chunk.sortOrder})`;
+            const pathInfo = chunk.metadata?.path?.length
+              ? `\nPath: ${chunk.metadata.path.join(" / ")}`
+              : "";
+            return `${chunkHeader}${pathInfo}\n${"-".repeat(60)}\n${chunk.content}\n`;
+          })
+          .join("\n");
+
+        return createResponse(header + chunks);
+      } catch (error) {
+        return createError(error);
+      }
+    },
+  );
+
   // List libraries tool
   server.tool(
     "list_libraries",

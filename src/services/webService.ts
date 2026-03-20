@@ -10,6 +10,7 @@ import type { IDocumentManagement } from "../store/trpc/interfaces";
 import { SearchTool } from "../tools";
 import { CancelJobTool } from "../tools/CancelJobTool";
 import { ClearCompletedJobsTool } from "../tools/ClearCompletedJobsTool";
+import { GetPageTool } from "../tools/GetPageTool";
 import { ListJobsTool } from "../tools/ListJobsTool";
 import { ListLibrariesTool } from "../tools/ListLibrariesTool";
 import { RefreshVersionTool } from "../tools/RefreshVersionTool";
@@ -24,6 +25,7 @@ import { registerJobListRoutes } from "../web/routes/jobs/list";
 import { registerNewJobRoutes } from "../web/routes/jobs/new";
 import { registerLibraryDetailRoutes } from "../web/routes/libraries/detail";
 import { registerLibrariesRoutes } from "../web/routes/libraries/list";
+import { registerPageRoute } from "../web/routes/page";
 import { registerStatsRoute } from "../web/routes/stats";
 
 /**
@@ -50,11 +52,13 @@ export async function registerWebService(
   const removeTool = new RemoveTool(docService, pipeline);
   const refreshVersionTool = new RefreshVersionTool(pipeline);
   const searchTool = new SearchTool(docService);
+  const getPageTool = new GetPageTool(docService);
   const cancelJobTool = new CancelJobTool(pipeline);
   const clearCompletedJobsTool = new ClearCompletedJobsTool(pipeline);
 
   // Register all web routes
   registerIndexRoute(server, externalWorkerUrl);
+  registerPageRoute(server, getPageTool);
   registerLibrariesRoutes(server, listLibrariesTool, removeTool, refreshVersionTool);
   registerLibraryDetailRoutes(
     server,

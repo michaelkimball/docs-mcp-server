@@ -102,6 +102,34 @@ export function createDataRouter(trpc: unknown) {
         },
       ),
 
+    getPageChunks: tt.procedure
+      .input(
+        z.object({
+          library: nonEmpty,
+          version: optionalVersion,
+          url: nonEmpty,
+        }),
+      )
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: {
+            library: string;
+            version: string | null | undefined;
+            url: string;
+          };
+        }) => {
+          return await ctx.docService.getPageChunks(
+            input.library,
+            input.version ?? null,
+            input.url,
+          );
+        },
+      ),
+
     removeVersion: tt.procedure
       .input(z.object({ library: nonEmpty, version: optionalVersion }))
       .mutation(

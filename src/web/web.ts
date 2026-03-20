@@ -7,6 +7,7 @@ import type { DocumentManagementService } from "../store/DocumentManagementServi
 import { SearchTool } from "../tools";
 import { CancelJobTool } from "../tools/CancelJobTool";
 import { ClearCompletedJobsTool } from "../tools/ClearCompletedJobsTool";
+import { GetPageTool } from "../tools/GetPageTool";
 import { ListJobsTool } from "../tools/ListJobsTool";
 import { ListLibrariesTool } from "../tools/ListLibrariesTool";
 import { RefreshVersionTool } from "../tools/RefreshVersionTool";
@@ -22,6 +23,7 @@ import { registerJobListRoutes } from "./routes/jobs/list";
 import { registerNewJobRoutes } from "./routes/jobs/new";
 import { registerLibraryDetailRoutes } from "./routes/libraries/detail";
 import { registerLibrariesRoutes } from "./routes/libraries/list";
+import { registerPageRoute } from "./routes/page";
 
 /**
  * Initializes the Fastify web server instance.
@@ -50,6 +52,7 @@ export async function startWebServer(
   const scrapeTool = new ScrapeTool(pipelineManager, config.scraper);
   const removeTool = new RemoveTool(docService, pipelineManager);
   const searchTool = new SearchTool(docService);
+  const getPageTool = new GetPageTool(docService);
   const cancelJobTool = new CancelJobTool(pipelineManager);
   const clearCompletedJobsTool = new ClearCompletedJobsTool(pipelineManager);
   const refreshVersionTool = new RefreshVersionTool(pipelineManager);
@@ -64,6 +67,7 @@ export async function startWebServer(
 
   // Register routes
   registerIndexRoute(server); // Register the root route first
+  registerPageRoute(server, getPageTool); // Register page chunks view route
   registerJobListRoutes(server, listJobsTool);
   registerNewJobRoutes(server, scrapeTool, config.scraper);
   registerCancelJobRoute(server, cancelJobTool);

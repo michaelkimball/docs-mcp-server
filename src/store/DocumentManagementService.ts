@@ -492,6 +492,20 @@ export class DocumentManagementService {
     return this.documentRetriever.search(library, normalizedVersion, query, limit);
   }
 
+  /**
+   * Retrieves all chunks for a specific page URL.
+   * Returns chunks ordered by sort_order.
+   * If version is omitted, searches documents without a specific version.
+   */
+  async getPageChunks(
+    library: string,
+    version: string | null | undefined,
+    url: string,
+  ): Promise<import("./types").DbPageChunk[]> {
+    const normalizedVersion = this.normalizeVersion(version);
+    return this.store.findChunksByUrl(library, normalizedVersion, url);
+  }
+
   // Deprecated simple listing removed: enriched listLibraries() is canonical
 
   /**
